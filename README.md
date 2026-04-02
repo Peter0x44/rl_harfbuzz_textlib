@@ -12,7 +12,7 @@ This repository now contains the initial reusable library skeleton:
 - HarfBuzz GPU atlas, glyph cache, shaping, and draw path extracted into reusable code
 - Null-terminated and pointer-plus-length text APIs
 - Optional bundled default font fallback
-- CMake packaging for local use, installation, and downstream linking
+- Simple CMake integration for local/subproject use
 - Small Latin and Arabic examples
 
 ## Build
@@ -26,13 +26,12 @@ cmake --build build --config Release
 
 When building this project itself, dependency resolution works like this:
 
-- reuse existing compatible CMake targets if they already exist
-- try `find_package(... CONFIG)` for raylib and HarfBuzz
-- fetch raylib and HarfBuzz with `FetchContent` if they are still missing and fetching is enabled
+- reuse an existing compatible raylib target if one already exists
+- try `find_package(... CONFIG)` for raylib
+- fetch raylib if it is still missing and fetching is enabled
+- build HarfBuzz internally from the upstream `harfbuzz-world.cc` amalgamated source
 
-For HarfBuzz, the resolved dependency set must include both the core and GPU targets.
-
-Installed package consumption is different: the exported package does not use `FetchContent` for downstream consumers. It only uses `find_dependency(...)`, so downstream projects must have raylib and HarfBuzz discoverable in their own CMake environment.
+By default the project fetches a pinned HarfBuzz source snapshot and compiles the core plus GPU support into `rl_harfbuzz_textlib` itself. If you want to supply your own HarfBuzz source tree instead, set `RLHB_HARFBUZZ_SOURCE_DIR`.
 
 ## Default Font
 
@@ -177,12 +176,5 @@ All examples can run without arguments by using the bundled default font, and st
 
 ```cmake
 add_subdirectory(rl_harfbuzz_textlib)
-target_link_libraries(my_app PRIVATE rl_harfbuzz_textlib::rl_harfbuzz_textlib)
-```
-
-### As an installed package
-
-```cmake
-find_package(rl_harfbuzz_textlib REQUIRED)
 target_link_libraries(my_app PRIVATE rl_harfbuzz_textlib::rl_harfbuzz_textlib)
 ```

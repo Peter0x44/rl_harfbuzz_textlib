@@ -1024,7 +1024,7 @@ rlhbFont *rlhbLoadDefaultFont(rlhbRenderer *renderer) {
   return font.release();
 #else
   (void)renderer;
-  LogError("This build was configured without a bundled default font.");
+  LogWarning("This build was configured without a bundled default font.");
   return nullptr;
 #endif
 }
