@@ -196,9 +196,9 @@ These will be addressed in future.
 This code was written using GPT-5.4 and then reviewed and tested by @Peter0x44. If that offends your moral framework, this library is not for you.
 
 ## Credits
-
+ 
 | Project | Link | Notes |
 | --- | --- | --- |
-| @raysan5 | https://github.com/raysan5/raylib | Raylib library |
-| @JeffM2501 | https://github.com/raylib-extras/rTextLib | rTextLib API design inspiration |
-| @behdad | https://github.com/harfbuzz/harfbuzz/ | HarfBuzz maintainer |
+| @raysan5 | [raysan5/raylib](https://github.com/raysan5/raylib) | Raylib library |
+| @JeffM2501 | [raylib-extras/rTextLib](https://github.com/raylib-extras/rTextLib) | rTextLib API design inspiration |
+| @behdad | [harfbuzz/harfbuzz](https://github.com/harfbuzz/harfbuzz) | HarfBuzz maintainer |
