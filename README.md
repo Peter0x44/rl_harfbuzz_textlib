@@ -197,6 +197,8 @@ This code was written using GPT-5.4 and then reviewed and tested by @Peter0x44. 
 
 ## Credits
 
+| Project | Link | Notes |
+| --- | --- | --- |
 | @raysan5 | https://github.com/raysan5/raylib | Raylib library |
-| @JeffM2501 | https://github.com/raylib-extras/rTextLib | rTextlib drawing library - API design inspiration |
+| @JeffM2501 | https://github.com/raylib-extras/rTextLib | rTextLib API design inspiration |
 | @behdad | https://github.com/harfbuzz/harfbuzz/ | HarfBuzz maintainer |
