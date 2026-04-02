@@ -1,0 +1,35 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+find_dependency(Threads REQUIRED)
+
+if(NOT TARGET raylib AND NOT TARGET raylib::raylib)
+  find_dependency(raylib QUIET CONFIG)
+  if(NOT TARGET raylib AND NOT TARGET raylib::raylib)
+    find_dependency(raylib REQUIRED)
+  endif()
+endif()
+
+if(TARGET raylib AND NOT TARGET raylib::raylib)
+  add_library(raylib::raylib INTERFACE IMPORTED)
+  set_target_properties(raylib::raylib PROPERTIES INTERFACE_LINK_LIBRARIES raylib)
+endif()
+
+if(NOT TARGET harfbuzz AND NOT TARGET harfbuzz::harfbuzz)
+  find_dependency(harfbuzz REQUIRED CONFIG)
+endif()
+
+if(TARGET harfbuzz AND NOT TARGET harfbuzz::harfbuzz)
+  add_library(harfbuzz::harfbuzz INTERFACE IMPORTED)
+  set_target_properties(harfbuzz::harfbuzz PROPERTIES INTERFACE_LINK_LIBRARIES harfbuzz)
+endif()
+
+if(TARGET harfbuzz-gpu AND NOT TARGET harfbuzz::harfbuzz-gpu)
+  add_library(harfbuzz::harfbuzz-gpu INTERFACE IMPORTED)
+  set_target_properties(harfbuzz::harfbuzz-gpu PROPERTIES INTERFACE_LINK_LIBRARIES harfbuzz-gpu)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/rl_harfbuzz_textlibTargets.cmake")
+
+check_required_components(rl_harfbuzz_textlib)
