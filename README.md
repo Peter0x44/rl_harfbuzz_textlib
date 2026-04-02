@@ -1,190 +1,202 @@
 # rl_harfbuzz_textlib
 
-Reusable HarfBuzz 14 GPU text rendering for raylib.
+HarfBuzz GPU text rendering for raylib.
 
-## Current status
+`rl_harfbuzz_textlib` shapes and renders UTF-8 text with HarfBuzz. It is aimed at projects that want support for ligatures, Arabic and RTL shaping, as well as GPU font rasterization to make arbitrary-size drawing beautiful.
 
-This repository now contains the initial reusable library skeleton:
+## What Is Here
 
-- C API with rlhbPascalCase naming
-- Optional thin C++ wrapper
-- Single main implementation file for the core library
-- HarfBuzz GPU atlas, glyph cache, shaping, and draw path extracted into reusable code
-- Null-terminated and pointer-plus-length text APIs
-- Optional bundled default font fallback
-- Simple CMake integration for local/subproject use
-- Minimal C and C++ examples plus an interactive type lab
+- C API in `include/rl_harfbuzz_textlib/rl_harfbuzz_textlib.h`
+- Thin C++ wrapper in `include/rl_harfbuzz_textlib/rl_harfbuzz_textlib.hpp`
+- Core implementation in `src/rl_harfbuzz_textlib.cpp`
+- Bundled default font `DejaVuSans.ttf`
+- Three examples: a C API example, C++ API example, and an interactive demo
+
+## Current Scope
+
+- raylib with the OpenGL 3.3 backend
+- local or subproject CMake usage
+- HarfBuzz build from `harfbuzz-world.cc`
 
 ## Build
 
+Requirements:
+
+- CMake 4.0 or newer
+- A C++17-capable compiler
+- raylib available in your environment, or `RLHB_FETCH_RAYLIB=ON`
+
+Typical build for this repository:
+
 ```powershell
-cmake -S . -B build
-cmake --build build --config Release
+cmake -S . -B build -DRLHB_BUILD_EXAMPLES=ON -DRLHB_FETCH_RAYLIB=ON
+cmake --build build
 ```
 
-## Dependency behavior
+If your environment already provides `raylib` or `raylib::raylib`, leave `RLHB_FETCH_RAYLIB` off.
 
-When building this project itself, dependency resolution works like this:
+CMake options:
 
-- reuse an existing compatible raylib target if one already exists
-- try `find_package(... CONFIG)` for raylib
-- fetch raylib if it is still missing and fetching is enabled
-- build HarfBuzz internally from the upstream `harfbuzz-world.cc` amalgamated source
+- `RLHB_BUILD_EXAMPLES=ON|OFF` builds the example programs. Default: `OFF`
+- `RLHB_FETCH_RAYLIB=ON|OFF` fetches raylib if it is not already available. Default: `OFF`
+- `RLHB_BUNDLE_DEFAULT_FONT=ON|OFF` embeds the bundled fallback font. Default: `ON`
+- `RLHB_HARFBUZZ_SOURCE_DIR=/path/to/harfbuzz` uses your own HarfBuzz source tree instead of the pinned download
 
-By default the project fetches a pinned HarfBuzz source snapshot and compiles the core plus GPU support into `rl_harfbuzz_textlib` itself. If you want to supply your own HarfBuzz source tree instead, set `RLHB_HARFBUZZ_SOURCE_DIR`.
+## Using From CMake
 
-## Default Font
+This project is set up for subproject use:
 
-By default, the library embeds `DejaVuSans.ttf` and exposes it through the C API and the thin C++ wrapper.
-
-- C API: `rlhbLoadDefaultFont()`
-- C++ API: `renderer.loadDefaultFont()`
-
-This is a convenience fallback so the examples can run without requiring the caller to provide a TTF path. It is a more general-purpose demo font with broader Latin, Cyrillic, and Arabic coverage than the previous default, but it is still not a universal font fallback system.
-
-The bundled font asset and its license live in:
-
-- `assets/fonts/DejaVuSans.ttf`
-- `assets/fonts/LICENSE.DejaVu.txt`
-
-The embedded byte array is pre-generated and committed in:
-
-- `src/rlhb_default_font_data.h`
-
-If you do not want the library to embed a fallback font, configure with `-DRLHB_BUNDLE_DEFAULT_FONT=OFF`.
-
-## Logging
-
-By default, the library logs through raylib's `TraceLog`.
-
-This behavior can be overriden using:
-- C API: `rlhbSetLogCallback()`
-- C++ API: `rlhb::setLogCallback()`
-
-Passing `nullptr` resets logging back to the default `TraceLog` behavior.
-
-## Render State
-
-The convenience draw helpers change rlgl state. In particular they flush raylib's active batch, install the library shader, and use their own blend and texture bindings.
-
-For simple 2D usage that is fine. For explicit control, use a text draw scope:
-
-- `rlhbBeginDraw()` / `rlhbEndDraw()` in C
-- `renderer.beginDraw()` / `renderer.endDraw()` in C++
-
-That makes the state ownership explicit and lets you batch several text draws under one setup cost.
-
-Important limitation: ending the text draw scope returns to default raylib state. It does not restore an arbitrary previous custom shader, custom viewport, or other user-managed OpenGL state.
-
-In particular, do not expect this sequence to preserve your custom shader mode:
-
-```c
-BeginShaderMode(myShader);
-rlhbDrawText(...);
-EndShaderMode();
+```cmake
+add_subdirectory(rl_harfbuzz_textlib)
+target_link_libraries(my_app PRIVATE rl_harfbuzz_textlib::rl_harfbuzz_textlib)
 ```
 
-The text draw installs its own shader and ends in default raylib shader state. If you want to mix custom shader mode with rlhb drawing, manage that scope yourself:
+The library vendors HarfBuzz internally and links against raylib.
 
-1. End your custom shader mode before calling `rlhbBeginDraw()` or any `rlhbDrawText*()` helper.
-2. Draw the text.
-3. Begin your custom shader mode again afterward if you still need it.
+## API At A Glance
 
-If your goal is to apply a custom effect to the text itself, render the text to a `RenderTexture` first and then draw that texture under your own shader.
+Core objects:
 
-## API Overview
+- `rlhbRenderer`: owns GPU state and the glyph atlas
+- `rlhbFont`: a font associated with a renderer
+- `rlhbTextRun`: a reusable shaped run
 
-Typical usage looks like this:
+Main C functions:
 
-1. Call `InitWindow()` first.
-2. Create an `rlhbRenderer`.
-3. Load a font from disk using `rlhbLoadFontFromFile()` or call `rlhbLoadDefaultFont()`.
-4. Start from `rlhbGetDefaultShapeOptions()` and override only what you need.
-5. Shape once and draw many times with `rlhbShapeText*()` plus `rlhbDrawTextRun()`, or use `rlhbDrawText*()` for one-shot calls.
-6. If you are issuing multiple text draws in a row, wrapping them in `rlhbBeginDraw()` / `rlhbEndDraw()` will improve performance.
+- `rlhbCreateRenderer()` / `rlhbDestroyRenderer()`
+- `rlhbLoadFontFromFile()` / `rlhbLoadDefaultFont()` / `rlhbUnloadFont()`
+- `rlhbGetDefaultShapeOptions()`
+- `rlhbDrawText()` / `rlhbDrawTextN()`
+- `rlhbShapeText()` / `rlhbShapeTextN()` / `rlhbDrawTextRun()`
+- `rlhbMeasureText()` / `rlhbMeasureTextN()`
+- `rlhbBeginDraw()` / `rlhbEndDraw()`
 
-### Shape options
+Main C++ wrapper types:
 
-- `fontSize` is the requested draw size in pixels.
-- `direction` controls directional shaping. `rlhbDirectionAuto` usually works for normal UTF-8 text.
-- `align` controls how `baseline.x` anchors a shaped run when it is drawn.
-- `language` is optional extra shaping context, usually a language tag such as `en` or `ar`.
-- `script` is optional extra shaping context, usually a four-letter script tag such as `Latn` or `Arab`.
+- `rlhb::Renderer`
+- `rlhb::Font`
+- `rlhb::TextRun`
 
-In most cases you can leave `language` and `script` as null and let HarfBuzz infer them. They are exposed so callers can force shaping context for short text, mixed-script content, or fonts with language-specific substitutions.
-
-### Baseline positioning
-
-The draw APIs use a typographic baseline, not a top-left origin.
-
-- `baseline.x` is the horizontal anchor point.
-- `baseline.y` is the vertical line the glyphs sit on.
-- `align` affects how the run is anchored horizontally around `baseline.x`.
-- `ascent`, `descent`, and `bounds` in `rlhbRunMetrics` are all relative to that baseline.
-
-If you want top-left style placement, shape or measure first and then place the baseline at `topY + ascent`.
-
-### Minimal C example
+One-shot draw example in C:
 
 ```c
-InitWindow(1280, 720, "rlhb example");
+InitWindow(800, 450, "rlhb example");
 
 rlhbRenderer *renderer = rlhbCreateRenderer();
 rlhbFont *font = rlhbLoadDefaultFont(renderer);
 
 rlhbShapeOptions options = rlhbGetDefaultShapeOptions();
 options.fontSize = 32.0f;
+options.align = rlhbTextAlignCenter;
 
+BeginDrawing();
+ClearBackground(RAYWHITE);
 rlhbDrawText(renderer,
              font,
-             "مرحبا world",
-             (Vector2){40.0f, 120.0f},
-             BLACK,
+             "Hello world",
+             (Vector2){400.0f, 220.0f},
+             DARKGRAY,
              &options);
+EndDrawing();
 ```
 
-If you draw the same text repeatedly unchanged, prefer `rlhbShapeTextN()` or `rlhbShapeText()` once and then reuse the resulting `rlhbTextRun` with `rlhbDrawTextRun()`.
+If the text stays the same across frames, shape it once with `rlhbShapeText*()` and reuse the result with `rlhbDrawTextRun()`.
 
-If you are drawing multiple text runs in sequence, wrap them in `rlhbBeginDraw()` and `rlhbEndDraw()` so the library only installs its shader and related draw state once.
+## Begin And End Draw
+
+The one-shot draw helpers work on their own, but if you are drawing several text items in one frame, you should prefer to begin and end an explicit draw scope:
+
+```c
+BeginDrawing();
+ClearBackground(RAYWHITE);
+
+rlhbBeginDraw(renderer);
+rlhbDrawText(renderer, font, "First", (Vector2){40.0f, 120.0f}, DARKGRAY, &options);
+rlhbDrawText(renderer, font, "Second", (Vector2){40.0f, 170.0f}, DARKGRAY, &options);
+rlhbEndDraw(renderer);
+
+EndDrawing();
+```
+
+
+The C++ wrapper exposes this as `renderer.beginDraw()` and `renderer.endDraw()`.
+
+If the call is not wrapped in rlhbBeginDraw and rlhbEndDraw, it will set up and tear down the state for every single call.
+
+Ending the scope returns the renderer to a default raylib state when it ends. It does not restore any previously active custom shader or other user-managed OpenGL state.
+
+## Shaping And Positioning
+
+- Text input is UTF-8
+- `fontSize` is in pixels
+- `direction` defaults to `rlhbDirectionAuto`
+- `align` controls how `baseline.x` anchors the run
+- Draw positions use a typographic baseline, not a top-left origin
+- `rlhbRunMetrics` exposes width, ascent, descent, bounds, and glyph count
+
+If you want top-left style layout, measure first and place the baseline at `top + ascent`.
+
+## Default Font
+
+When `RLHB_BUNDLE_DEFAULT_FONT=ON`, the library embeds `DejaVuSans.ttf` and exposes it through rlhbLoadDefaultFont.
+
+Relevant files:
+
+- `assets/fonts/DejaVuSans.ttf`
+- `assets/fonts/LICENSE.DejaVu.txt`
+- `src/rlhb_default_font_data.h`
+
+## Logging
+
+By default the library logs through raylib's `TraceLog`.
+
+You can override that with:
+
+- C API: `rlhbSetLogCallback()`
+- C++ API: `rlhb::setLogCallback()`
+
+Passing `nullptr` restores the default logger.
 
 ## Examples
 
-There are now three example entry points, all as flat files under `examples/`:
+The repository currently ships three examples:
 
-- `rlhb_c_api_example` is a very small C example in the spirit of raylib's `core_basic_window.c`
-- `rlhb_cpp_api_example` is the same kind of minimal example using the thin C++ wrapper API
-- `rlhb_type_lab_example` is the interactive showcase: live typing, clickable preset/direction/alignment controls, drag-and-drop font loading, and a zoomable draggable stage
+- `rlhb_c_api_example`: a tiny C example in the spirit of raylib's `core_basic_window.c`
+- `rlhb_cpp_api_example`: the same kind of minimal example using the C++ wrapper
+- `rlhb_type_lab_example`: an interactive demo for typing, shaping, zooming, panning, and trying different fonts
 
-All examples can run without arguments by using the bundled default font.
 
-```powershell
-./build/rlhb_c_api_example
-./build/rlhb_cpp_api_example
-./build/rlhb_type_lab_example
-
-# optional override for the interactive demo
-./build/rlhb_type_lab_example C:/path/to/YourFont.ttf
-```
-
-The type lab example supports these controls:
+Type lab controls:
 
 - Type to replace the sample text
-- Click the preset, direction, and alignment chips in the header to switch modes directly
-- `Backspace` deletes the previous UTF-8 codepoint
-- `Ctrl+V` pastes clipboard text
+- Click preset, direction, and alignment chips
+- `Backspace` deletes one UTF-8 codepoint
+- `Ctrl+V` pastes text from the clipboard
+- Mouse wheel zooms
+- Left mouse drag pans
 - Drop a font file onto the window to switch fonts
-- Mouse wheel zooms the main stage view and `PageUp` and `PageDown` also adjust zoom
-- Hold left mouse button and drag to pan the main stage view
-- `Up` and `Down` adjust font size
+- `Up` and `Down` change font size
 - `F4` cycles direction, `F5` resets the view, and `F6` cycles alignment
 
-The type lab example intentionally renders its on-screen UI text through `rlhb`, not raylib's `DrawText()`.
 
-## CMake consumption
+## Limitations
 
-### As a subproject
+Current limitations include:
 
-```cmake
-add_subdirectory(rl_harfbuzz_textlib)
-target_link_libraries(my_app PRIVATE rl_harfbuzz_textlib::rl_harfbuzz_textlib)
-```
+- no full bidi run segmentation or reordering for mixed-direction text
+- no paragraph layout or line wrapping
+- no automatic font fallback chain
+- fixed-size glyph atlas that cannot expand at runtime
+- OpenGL 3.3 backend only (untested on web)
+
+These will be addressed in future.
+
+## AI use disclosure
+
+This code was written using GPT-5.4 and then reviewed and tested by @Peter0x44. If that offends your moral framework, this library is not for you.
+
+## Credits
+
+| @raysan5 | https://github.com/raysan5/raylib | Raylib library |
+| @JeffM2501 | https://github.com/raylib-extras/rTextLib | rTextlib drawing library - API design inspiration |
+| @behdad | https://github.com/harfbuzz/harfbuzz/ | HarfBuzz maintainer |
