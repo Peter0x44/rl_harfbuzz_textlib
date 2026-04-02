@@ -24,7 +24,6 @@
 extern "C" {
 #endif
 
-// Public C API for shaping and drawing UTF-8 text with HarfBuzz GPU through raylib.
 
 // Opaque renderer handle that owns GPU state and the glyph atlas.
 typedef struct rlhbRenderer rlhbRenderer;
@@ -61,7 +60,7 @@ typedef struct rlhbRunMetrics {
   float width;      // Advance width of the run.
   float ascent;     // Distance above the baseline.
   float descent;    // Distance below the baseline.
-  Rectangle bounds; // Bounding box relative to the draw baseline.
+  Rectangle bounds; // Bounding box relative to the draw baseline, not a top-left origin.
   int glyphCount;   // Number of shaped glyphs in the run.
 } rlhbRunMetrics;
 
@@ -119,13 +118,27 @@ RLHB_API void rlhbDestroyTextRun(rlhbTextRun *run);
 // Returns cached metrics for a shaped run. A NULL run returns zeroed metrics.
 RLHB_API rlhbRunMetrics rlhbGetTextRunMetrics(const rlhbTextRun *run);
 
-// Draws a previously shaped run at the given baseline position.
+// Begins an explicit text draw scope. This installs the text shader and related draw state.
+// rlhbEndDraw() returns the renderer to a default raylib state, not any previous custom shader mode.
+// If you are using BeginShaderMode(), BeginBlendMode(), or other custom draw state, end and restart it yourself around rlhb draws.
+RLHB_API bool rlhbBeginDraw(rlhbRenderer *renderer);
+
+// Ends an explicit text draw scope previously started with rlhbBeginDraw().
+// This does not restore an arbitrary user shader or other custom OpenGL state.
+RLHB_API void rlhbEndDraw(rlhbRenderer *renderer);
+
+// Draws a previously shaped run at the given typographic baseline position.
+// baseline.x is the horizontal anchor, adjusted by the run's alignment.
+// baseline.y is the vertical baseline the glyphs sit on, not the top edge of the text.
+// When no explicit draw scope is active, this creates a temporary one internally.
 RLHB_API bool rlhbDrawTextRun(rlhbRenderer *renderer,
                               const rlhbTextRun *run,
                               Vector2 baseline,
                               Color tint);
 
 // Shapes and draws a UTF-8 string with an explicit byte length in one call.
+// baseline uses typographic coordinates, not a top-left text box origin.
+// When no explicit draw scope is active, this creates a temporary one internally.
 RLHB_API bool rlhbDrawTextN(rlhbRenderer *renderer,
                             rlhbFont *font,
                             const char *text,
@@ -135,6 +148,8 @@ RLHB_API bool rlhbDrawTextN(rlhbRenderer *renderer,
                             const rlhbShapeOptions *options);
 
 // Shapes and draws a null-terminated UTF-8 string in one call.
+// baseline uses typographic coordinates, not a top-left text box origin.
+// When no explicit draw scope is active, this creates a temporary one internally.
 RLHB_API bool rlhbDrawText(rlhbRenderer *renderer,
                            rlhbFont *font,
                            const char *text,

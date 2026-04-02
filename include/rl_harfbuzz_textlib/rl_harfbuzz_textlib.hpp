@@ -153,7 +153,19 @@ class Renderer {
     return TextRun(run);
   }
 
+  // Begins an explicit text draw scope. endDraw() returns to default raylib-style state.
+  // Note: Will overwrite any currently active shader state, and flush raylib's batch system.
+  [[nodiscard]] bool beginDraw() const {
+    return rlhbBeginDraw(handle_);
+  }
+
+  // Ends an explicit text draw scope started with beginDraw().
+  void endDraw() const noexcept {
+    rlhbEndDraw(handle_);
+  }
+
   // Shapes and draws UTF-8 text in one call.
+  // baseline is a typographic baseline, not a top-left text box origin.
   [[nodiscard]] bool drawText(std::string_view text,
                               Font &font,
                               Vector2 baseline,
@@ -162,7 +174,7 @@ class Renderer {
     return rlhbDrawTextN(handle_, font.get(), text.data(), text.size(), baseline, tint, &options);
   }
 
-  // Draws a previously shaped run.
+  // Draws a previously shaped run using a typographic baseline position.
   [[nodiscard]] bool drawText(const TextRun &run, Vector2 baseline, Color tint) const {
     return rlhbDrawTextRun(handle_, run.get(), baseline, tint);
   }

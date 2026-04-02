@@ -246,6 +246,9 @@ struct rlhbRenderer {
   bool debug = false;
   bool stemDarkening = true;
   float gamma = 1.0f / 2.2f;
+  unsigned drawScopeDepth = 0;
+  int drawScopeViewportWidth = 0;
+  int drawScopeViewportHeight = 0;
   size_t vertexCapacity = 4096;
   std::vector<GlyphVertex> scratchVertices;
 };
@@ -843,37 +846,44 @@ static bool BuildVertices(rlhbRenderer *renderer, const rlhbTextRun *run, Vector
   return true;
 }
 
-static bool RenderVertices(rlhbRenderer *renderer, int viewportWidth, int viewportHeight, Color tint) {
-  if (renderer->scratchVertices.empty()) {
+static bool BeginDrawScope(rlhbRenderer *renderer) {
+  if (renderer == nullptr) {
+    LogError("A valid renderer is required to begin text drawing.");
+    return false;
+  }
+
+  if (!EnsureRendererReady(renderer)) {
+    return false;
+  }
+
+  if (renderer->drawScopeDepth > 0) {
+    renderer->drawScopeDepth += 1;
     return true;
   }
 
+  renderer->drawScopeViewportWidth = GetScreenWidth();
+  renderer->drawScopeViewportHeight = GetScreenHeight();
+
   const Matrix mvp = MatrixOrtho(0.0,
-                                 static_cast<double>(viewportWidth),
-                                 static_cast<double>(viewportHeight),
+                                 static_cast<double>(renderer->drawScopeViewportWidth),
+                                 static_cast<double>(renderer->drawScopeViewportHeight),
                                  0.0,
                                  -1.0,
                                  1.0);
 
   rlDrawRenderBatchActive();
-  rlViewport(0, 0, viewportWidth, viewportHeight);
+  rlViewport(0, 0, renderer->drawScopeViewportWidth, renderer->drawScopeViewportHeight);
   rlDisableDepthTest();
   rlDisableBackfaceCulling();
   rlDisableScissorTest();
   rlEnableColorBlend();
-  rlSetBlendFactors(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_FUNC_ADD);
+  rlSetBlendMode(BLEND_ALPHA);
   rlEnableShader(renderer->program);
   rlSetUniformMatrix(renderer->locMvp, mvp);
 
   const float viewport[2] = {
-      static_cast<float>(viewportWidth),
-      static_cast<float>(viewportHeight),
-  };
-  const float foreground[4] = {
-      tint.r / 255.0f,
-      tint.g / 255.0f,
-      tint.b / 255.0f,
-      tint.a / 255.0f,
+      static_cast<float>(renderer->drawScopeViewportWidth),
+      static_cast<float>(renderer->drawScopeViewportHeight),
   };
   const float debugValue = renderer->debug ? 1.0f : 0.0f;
   const float stemDarkening = renderer->stemDarkening ? 1.0f : 0.0f;
@@ -882,6 +892,48 @@ static bool RenderVertices(rlhbRenderer *renderer, int viewportWidth, int viewpo
   rlSetUniform(renderer->locGamma, &renderer->gamma, RL_SHADER_UNIFORM_FLOAT, 1);
   rlSetUniform(renderer->locDebug, &debugValue, RL_SHADER_UNIFORM_FLOAT, 1);
   rlSetUniform(renderer->locStemDarkening, &stemDarkening, RL_SHADER_UNIFORM_FLOAT, 1);
+
+  renderer->drawScopeDepth = 1;
+  return true;
+}
+
+static void EndDrawScope(rlhbRenderer *renderer) {
+  if (renderer == nullptr || renderer->drawScopeDepth == 0) {
+    return;
+  }
+
+  renderer->drawScopeDepth -= 1;
+  if (renderer->drawScopeDepth != 0) {
+    return;
+  }
+
+  rlDisableVertexArray();
+  rlDisableVertexBuffer();
+  rlDisableShader();
+  rlSetBlendMode(BLEND_ALPHA);
+  glBindTexture(GL_TEXTURE_BUFFER, 0);
+
+  renderer->drawScopeViewportWidth = 0;
+  renderer->drawScopeViewportHeight = 0;
+}
+
+static bool RenderVertices(rlhbRenderer *renderer, Color tint) {
+  if (renderer == nullptr || renderer->drawScopeDepth == 0) {
+    LogError("Text drawing requires an active draw scope.");
+    return false;
+  }
+
+  if (renderer->scratchVertices.empty()) {
+    return true;
+  }
+
+  const float foreground[4] = {
+      tint.r / 255.0f,
+      tint.g / 255.0f,
+      tint.b / 255.0f,
+      tint.a / 255.0f,
+  };
+
   rlSetUniform(renderer->locForeground, foreground, RL_SHADER_UNIFORM_VEC4, 1);
 
   renderer->atlas.Bind(renderer->locAtlas);
@@ -893,7 +945,6 @@ static bool RenderVertices(rlhbRenderer *renderer, int viewportWidth, int viewpo
   rlDrawVertexArray(0, static_cast<int>(renderer->scratchVertices.size()));
   rlDisableVertexArray();
   rlDisableVertexBuffer();
-  rlDisableShader();
   glBindTexture(GL_TEXTURE_BUFFER, 0);
   return true;
 }
@@ -1038,6 +1089,14 @@ rlhbRunMetrics rlhbGetTextRunMetrics(const rlhbTextRun *run) {
   return run->metrics;
 }
 
+bool rlhbBeginDraw(rlhbRenderer *renderer) {
+  return BeginDrawScope(renderer);
+}
+
+void rlhbEndDraw(rlhbRenderer *renderer) {
+  EndDrawScope(renderer);
+}
+
 bool rlhbDrawTextRun(rlhbRenderer *renderer,
                      const rlhbTextRun *run,
                      Vector2 baseline,
@@ -1045,7 +1104,22 @@ bool rlhbDrawTextRun(rlhbRenderer *renderer,
   if (!BuildVertices(renderer, run, baseline)) {
     return false;
   }
-  return RenderVertices(renderer, GetScreenWidth(), GetScreenHeight(), tint);
+
+  bool ownsScope = false;
+  if (renderer != nullptr && renderer->drawScopeDepth == 0) {
+    if (!BeginDrawScope(renderer)) {
+      return false;
+    }
+    ownsScope = true;
+  }
+
+  const bool rendered = RenderVertices(renderer, tint);
+
+  if (ownsScope) {
+    EndDrawScope(renderer);
+  }
+
+  return rendered;
 }
 
 bool rlhbDrawTextN(rlhbRenderer *renderer,
