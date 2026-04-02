@@ -44,14 +44,14 @@ constexpr SamplePreset kPresets[] = {
 
 struct DemoState {
   std::string text;
-  float fontSize = 56.0f;
-  float zoomFactor = 2.0f;
+  float fontSize = 42.0f;
+  float zoomFactor = 1.0f;
   Vector2 stagePan = {0.0f, 0.0f};
   rlhbDirection direction = rlhbDirectionAuto;
   rlhbTextAlign align = rlhbTextAlignCenter;
   const char *language = nullptr;
   const char *script = nullptr;
-  const char *presetLabel = kPresets[0].label;
+  const char *presetLabel = nullptr;
   std::string status;
   bool dirty = true;
 };
@@ -303,20 +303,20 @@ void MarkCustomText(DemoState *state) {
   state->dirty = true;
 }
 
+void ResetDemoState(DemoState *state) {
+  if (state == nullptr) {
+    return;
+  }
+
+  *state = DemoState();
+}
+
 Rectangle MakeRect(float x, float y, float w, float h) {
   return Rectangle{x, y, w, h};
 }
 
-float AnchorXForAlign(const Rectangle &panel, rlhbTextAlign align) {
-  switch (align) {
-    case rlhbTextAlignLeft:
-      return panel.x + 48.0f;
-    case rlhbTextAlignRight:
-      return panel.x + panel.width - 48.0f;
-    case rlhbTextAlignCenter:
-    default:
-      return panel.x + panel.width * 0.5f;
-  }
+float StageAnchorX(const Rectangle &panel) {
+  return panel.x + panel.width * 0.5f;
 }
 
 float LeftXFromMetrics(float anchorX, float width, rlhbTextAlign align) {
@@ -397,7 +397,6 @@ int main(int argc, char **argv) {
   }
 
   DemoState state;
-  ApplyPreset(&state, 0);
   double nextBackspaceRepeatTime = 0.0;
   bool draggingView = false;
 
@@ -472,9 +471,9 @@ int main(int argc, char **argv) {
       CycleDirection(&state);
     }
     if (IsKeyPressed(KEY_F5)) {
-      state.fontSize = 56.0f;
-      state.zoomFactor = 2.0f;
-      state.stagePan = Vector2{0.0f, 0.0f};
+      ResetDemoState(&state);
+      nextBackspaceRepeatTime = 0.0;
+      draggingView = false;
     }
     if (IsKeyPressed(KEY_DELETE)) {
       state.text.clear();
@@ -624,14 +623,14 @@ int main(int argc, char **argv) {
     const Color helperColor = CLITERAL(Color){68, 64, 57, 255};
 
     const float stageBaselineY = stagePanel.y + stagePanel.height * 0.57f + state.stagePan.y;
-    const float stageAnchorX = AnchorXForAlign(stagePanel, state.align) + state.stagePan.x;
+    const float stageAnchorX = StageAnchorX(stagePanel) + state.stagePan.x;
     const float stageFontSize = std::max(state.fontSize * state.zoomFactor, 0.1f);
     const float baselineThickness = 2.0f * state.zoomFactor;
     const float markerRingRadius = 5.0f * state.zoomFactor;
     const float markerOuterRadius = 3.9f * state.zoomFactor;
     const float markerInnerRadius = 1.8f * state.zoomFactor;
 
-    const std::string emptyPromptText = "Type to replace the sample text.";
+    const std::string emptyPromptText = "Type some text.";
     const bool hasUserText = !state.text.empty();
 
     rlhbRunMetrics liveMetrics = {};
@@ -656,18 +655,19 @@ int main(int argc, char **argv) {
 
     const std::string titleText = "rlhb Type Lab";
     const std::string subtitleText = "Type freely, click chips, drag the stage, drop a font file, and zoom with the wheel.";
+    const char *presetReadout = state.presetLabel != nullptr ? state.presetLabel : "None";
     const std::string headerReadoutText = FormatString("size %.0f px   zoom x%.2f   pan %.0f, %.0f",
                                                        state.fontSize,
                                                        state.zoomFactor,
                                                        state.stagePan.x,
                                                        state.stagePan.y);
     const std::string footerStatsText = FormatString("preset %s   glyphs %i   cached %i   atlas %.2f KiB",
-                             state.presetLabel,
+                             presetReadout,
                              liveMetrics.glyphCount,
                              font.cachedGlyphCount(),
                              renderer.atlasUsageKiB());
     const std::string footerHintText =
-      "wheel zooms   drag pans   drop font file   ctrl+v paste   f5 resets view";
+      "wheel zooms   drag pans   drop font file   ctrl+v paste   f5 resets defaults";
 
     BeginDrawing();
 

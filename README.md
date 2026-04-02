@@ -2,7 +2,7 @@
 
 HarfBuzz GPU text rendering for raylib.
 
-`rl_harfbuzz_textlib` shapes and renders UTF-8 text with HarfBuzz. It is aimed at projects that want support for ligatures, Arabic and RTL shaping, as well as GPU font rasterization to make arbitrary-size drawing beautiful.
+`rl_harfbuzz_textlib` shapes and renders UTF-8 text with HarfBuzz. It is aimed at projects that want support for ligatures, Arabic and RTL shaping, as well as GPU font rasterization to make arbitrary-size font drawing crispy and beautiful.
 
 ## What Is Here
 
