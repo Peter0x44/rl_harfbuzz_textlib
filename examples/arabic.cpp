@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
              CLITERAL(Color){88, 78, 66, 255});
 
     if (font == nullptr || arabic == nullptr || mixed == nullptr) {
-      DrawText(rlhbGetLastError(renderer), 60, 180, 24, MAROON);
+      DrawText("Setup failed. Check logs.", 60, 180, 24, MAROON);
       DrawText("Example override: rlhb_arabic_example C:/path/to/Amiri-Regular.ttf",
                60,
                214,

@@ -8,6 +8,12 @@
 
 namespace rlhb {
 
+using LogCallback = ::rlhbLogCallback;
+
+inline void setLogCallback(LogCallback callback, void *userData = nullptr) noexcept {
+  rlhbSetLogCallback(callback, userData);
+}
+
 class TextRun {
  public:
   TextRun() = default;
@@ -111,7 +117,6 @@ class Renderer {
   }
 
   [[nodiscard]] bool ready() const noexcept { return rlhbIsRendererReady(handle_); }
-  [[nodiscard]] const char *lastError() const noexcept { return rlhbGetLastError(handle_); }
   [[nodiscard]] float atlasUsageKiB() const noexcept { return rlhbGetAtlasUsageKiB(handle_); }
 
   [[nodiscard]] Font loadFont(const char *filePath) const {

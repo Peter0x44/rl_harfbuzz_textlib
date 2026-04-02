@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
              CLITERAL(Color){88, 78, 66, 255});
 
     if (font == NULL || headline == NULL) {
-      DrawText(rlhbGetLastError(renderer), 60, 180, 24, MAROON);
+      DrawText("Setup failed. Check logs.", 60, 180, 24, MAROON);
       DrawText("Example override: rlhb_c_api_example C:/path/to/YourFont.ttf",
                60,
                214,

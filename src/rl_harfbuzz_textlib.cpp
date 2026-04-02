@@ -140,12 +140,18 @@ static void AppendGlyphVertices(Vector2 pen,
   vertices->push_back(corners[3]);
 }
 
+static void LogMessage(int level, const char *message);
+static void LogMessage(int level, const std::string &message);
+static void LogError(const char *message);
+static void LogError(const std::string &message);
+static void LogWarning(const char *message);
+
 }  // namespace
 
 struct rlhbRenderer {
   class GlyphAtlas {
    public:
-    bool Init(rlhbRenderer *renderer, unsigned capacityTexels) {
+    bool Init(unsigned capacityTexels) {
       capacity_ = capacityTexels;
       usedTexels_ = 0;
 
@@ -153,7 +159,7 @@ struct rlhbRenderer {
       glGenBuffers(1, &buffer_);
 
       if (texture_ == 0 || buffer_ == 0) {
-        renderer->lastError = "Failed to create OpenGL texture-buffer atlas objects.";
+        LogError("Failed to create OpenGL texture-buffer atlas objects.");
         return false;
       }
 
@@ -184,15 +190,15 @@ struct rlhbRenderer {
       usedTexels_ = 0;
     }
 
-    unsigned Allocate(rlhbRenderer *renderer, const char *data, unsigned lengthBytes) {
+    unsigned Allocate(const char *data, unsigned lengthBytes) {
       const unsigned lengthTexels = lengthBytes / kAtlasTexelBytes;
       if ((lengthBytes % kAtlasTexelBytes) != 0) {
-        renderer->lastError = "HarfBuzz GPU encoded glyph data was not aligned to atlas texels.";
+        LogError("HarfBuzz GPU encoded glyph data was not aligned to atlas texels.");
         return kInvalidAtlasOffset;
       }
 
       if (usedTexels_ + lengthTexels > capacity_) {
-        renderer->lastError = "Glyph atlas capacity exceeded. Atlas growth policy is not implemented yet.";
+        LogError("Glyph atlas capacity exceeded. Atlas growth policy is not implemented yet.");
         return kInvalidAtlasOffset;
       }
 
@@ -242,7 +248,6 @@ struct rlhbRenderer {
   float gamma = 1.0f / 2.2f;
   size_t vertexCapacity = 4096;
   std::vector<GlyphVertex> scratchVertices;
-  std::string lastError;
 };
 
 struct rlhbFont {
@@ -266,16 +271,47 @@ struct rlhbTextRun {
 
 namespace {
 
-static void SetError(rlhbRenderer *renderer, std::string message) {
-  if (renderer != nullptr) {
-    renderer->lastError = std::move(message);
+static void DefaultLogCallback(int level, const char *message, void *userData) {
+  (void)userData;
+
+  if (message == nullptr || message[0] == '\0') {
+    return;
+  }
+
+  TraceLog(level, "rlhb: %s", message);
+}
+
+struct LogState {
+  rlhbLogCallback callback = DefaultLogCallback;
+  void *userData = nullptr;
+};
+
+static LogState gLogState = {};
+
+static void LogMessage(int level, const char *message) {
+  if (message == nullptr || message[0] == '\0') {
+    return;
+  }
+
+  if (gLogState.callback != nullptr) {
+    gLogState.callback(level, message, gLogState.userData);
   }
 }
 
-static void ClearError(rlhbRenderer *renderer) {
-  if (renderer != nullptr) {
-    renderer->lastError.clear();
-  }
+static void LogMessage(int level, const std::string &message) {
+  LogMessage(level, message.c_str());
+}
+
+static void LogError(const char *message) {
+  LogMessage(LOG_ERROR, message);
+}
+
+static void LogError(const std::string &message) {
+  LogMessage(LOG_ERROR, message);
+}
+
+static void LogWarning(const char *message) {
+  LogMessage(LOG_WARNING, message);
 }
 
 static bool EnsureVertexBufferCapacity(rlhbRenderer *renderer, size_t requiredVertices) {
@@ -299,7 +335,7 @@ static bool EnsureVertexBufferCapacity(rlhbRenderer *renderer, size_t requiredVe
                                      true);
 
   if (renderer->vao == 0 || renderer->vbo == 0) {
-    SetError(renderer, "Failed to create rlgl vertex resources for glyph rendering.");
+    LogError("Failed to create rlgl vertex resources for glyph rendering.");
     return false;
   }
 
@@ -401,11 +437,9 @@ void main ()
 )glsl";
 
   if (!IsWindowReady()) {
-    SetError(renderer, "Create the renderer after InitWindow so an OpenGL context is available.");
+    LogError("Create the renderer after InitWindow so an OpenGL context is available.");
     return false;
   }
-
-  ClearError(renderer);
 
   const std::string vertexSource = JoinShaderSource({
       "#version 330\n",
@@ -420,7 +454,7 @@ void main ()
 
   renderer->program = rlLoadShaderCode(vertexSource.c_str(), fragmentSource.c_str());
   if (renderer->program == 0) {
-    SetError(renderer, "Failed to compile HarfBuzz GPU shaders.");
+    LogError("Failed to compile HarfBuzz GPU shaders.");
     return false;
   }
 
@@ -432,7 +466,7 @@ void main ()
   renderer->locDebug = rlGetLocationUniform(renderer->program, "u_debug");
   renderer->locAtlas = rlGetLocationUniform(renderer->program, "hb_gpu_atlas");
 
-  if (!renderer->atlas.Init(renderer, kAtlasCapacityTexels)) {
+  if (!renderer->atlas.Init(kAtlasCapacityTexels)) {
     return false;
   }
   if (!EnsureVertexBufferCapacity(renderer, renderer->vertexCapacity)) {
@@ -501,7 +535,7 @@ static bool LoadFontFromBytesCopy(rlhbRenderer *renderer,
                                   size_t fontDataSize,
                                   const char *sourceName) {
   if (renderer == nullptr || font == nullptr || fontData == nullptr || fontDataSize == 0) {
-    SetError(renderer, "Valid font bytes are required.");
+    LogError("Valid font bytes are required.");
     return false;
   }
 
@@ -510,7 +544,7 @@ static bool LoadFontFromBytesCopy(rlhbRenderer *renderer,
   }
 
   if (fontDataSize > static_cast<size_t>(std::numeric_limits<unsigned int>::max())) {
-    SetError(renderer, "Font data is too large for HarfBuzz blob creation.");
+    LogError("Font data is too large for HarfBuzz blob creation.");
     return false;
   }
 
@@ -528,7 +562,7 @@ static bool LoadFontFromBytesCopy(rlhbRenderer *renderer,
   hb_blob_destroy(blob);
 
   if (font->face == nullptr) {
-    SetError(renderer, "Failed to create a HarfBuzz face from the font data.");
+    LogError("Failed to create a HarfBuzz face from the font data.");
     UnloadFont(font);
     return false;
   }
@@ -540,7 +574,7 @@ static bool LoadFontFromBytesCopy(rlhbRenderer *renderer,
 
   font->draw = hb_gpu_draw_create_or_fail();
   if (font->draw == nullptr) {
-    SetError(renderer, "Failed to create the HarfBuzz GPU glyph encoder.");
+    LogError("Failed to create the HarfBuzz GPU glyph encoder.");
     UnloadFont(font);
     return false;
   }
@@ -552,14 +586,14 @@ static bool LoadFontFromBytesCopy(rlhbRenderer *renderer,
 
 static bool LoadFont(rlhbRenderer *renderer, rlhbFont *font, const char *filePath) {
   if (renderer == nullptr || font == nullptr || filePath == nullptr || filePath[0] == '\0') {
-    SetError(renderer, "A valid font file path is required.");
+    LogError("A valid font file path is required.");
     return false;
   }
 
   int fileSize = 0;
   unsigned char *fileData = LoadFileData(filePath, &fileSize);
   if (fileData == nullptr || fileSize <= 0) {
-    SetError(renderer, std::string("Failed to load font file: ") + filePath);
+    LogError(std::string("Failed to load font file: ") + filePath);
     return false;
   }
 
@@ -585,7 +619,7 @@ static const EncodedGlyphInfo *GetGlyph(rlhbFont *font, unsigned glyphIndex) {
 
   hb_blob_t *encoded = hb_gpu_draw_encode(font->draw);
   if (encoded == nullptr) {
-    SetError(font->renderer, "Failed to encode a glyph with the HarfBuzz GPU API.");
+    LogError("Failed to encode a glyph with the HarfBuzz GPU API.");
     return nullptr;
   }
 
@@ -601,8 +635,7 @@ static const EncodedGlyphInfo *GetGlyph(rlhbFont *font, unsigned glyphIndex) {
   info.empty = hb_blob_get_length(encoded) == 0;
 
   if (!info.empty) {
-    info.atlasOffset = font->renderer->atlas.Allocate(font->renderer,
-                                                      hb_blob_get_data(encoded, nullptr),
+    info.atlasOffset = font->renderer->atlas.Allocate(hb_blob_get_data(encoded, nullptr),
                                                       hb_blob_get_length(encoded));
     if (info.atlasOffset == kInvalidAtlasOffset) {
       hb_gpu_draw_recycle_blob(font->draw, encoded);
@@ -623,12 +656,12 @@ static bool ShapeTextImpl(rlhbRenderer *renderer,
                           const rlhbShapeOptions *options,
                           std::unique_ptr<rlhbTextRun> *outRun) {
   if (renderer == nullptr || font == nullptr || outRun == nullptr) {
-    SetError(renderer, "Renderer, font, and output run are required.");
+    LogError("Renderer, font, and output run are required.");
     return false;
   }
 
   if (text == nullptr && length != 0) {
-    SetError(renderer, "Text data is null but the supplied length is non-zero.");
+    LogError("Text data is null but the supplied length is non-zero.");
     return false;
   }
 
@@ -637,16 +670,14 @@ static bool ShapeTextImpl(rlhbRenderer *renderer,
   }
 
   if (font->renderer != renderer) {
-    SetError(renderer, "The font belongs to a different renderer instance.");
+    LogError("The font belongs to a different renderer instance.");
     return false;
   }
 
   if (length > static_cast<size_t>(std::numeric_limits<int>::max())) {
-    SetError(renderer, "Text length exceeds HarfBuzz's supported UTF-8 input range.");
+    LogError("Text length exceeds HarfBuzz's supported UTF-8 input range.");
     return false;
   }
-
-  ClearError(renderer);
 
   rlhbShapeOptions resolved = rlhbGetDefaultShapeOptions();
   if (options != nullptr) {
@@ -663,7 +694,7 @@ static bool ShapeTextImpl(rlhbRenderer *renderer,
 
   hb_buffer_t *buffer = hb_buffer_create();
   if (buffer == nullptr) {
-    SetError(renderer, "Failed to create a HarfBuzz buffer.");
+    LogError("Failed to create a HarfBuzz buffer.");
     return false;
   }
 
@@ -763,7 +794,7 @@ static bool ShapeTextImpl(rlhbRenderer *renderer,
 
 static bool BuildVertices(rlhbRenderer *renderer, const rlhbTextRun *run, Vector2 baseline) {
   if (renderer == nullptr || run == nullptr || run->font == nullptr) {
-    SetError(renderer, "A valid renderer and shaped run are required for drawing.");
+    LogError("A valid renderer and shaped run are required for drawing.");
     return false;
   }
 
@@ -772,7 +803,7 @@ static bool BuildVertices(rlhbRenderer *renderer, const rlhbTextRun *run, Vector
   }
 
   if (run->font->renderer != renderer) {
-    SetError(renderer, "The shaped run belongs to a different renderer instance.");
+    LogError("The shaped run belongs to a different renderer instance.");
     return false;
   }
 
@@ -881,12 +912,23 @@ rlhbShapeOptions rlhbGetDefaultShapeOptions(void) {
   return options;
 }
 
+void rlhbSetLogCallback(rlhbLogCallback callback, void *userData) {
+  if (callback == nullptr) {
+    gLogState.callback = DefaultLogCallback;
+    gLogState.userData = nullptr;
+    return;
+  }
+
+  gLogState.callback = callback;
+  gLogState.userData = userData;
+}
+
 rlhbRenderer *rlhbCreateRenderer(void) {
   std::unique_ptr<rlhbRenderer> renderer(new rlhbRenderer());
   if (IsWindowReady()) {
     InitRenderer(renderer.get());
   } else {
-    SetError(renderer.get(), "Renderer created before InitWindow. The first text operation will retry initialization.");
+    LogWarning("Renderer created before InitWindow. The first text operation will retry initialization.");
   }
   return renderer.release();
 }
@@ -901,13 +943,6 @@ void rlhbDestroyRenderer(rlhbRenderer *renderer) {
 
 bool rlhbIsRendererReady(const rlhbRenderer *renderer) {
   return renderer != nullptr && renderer->ready;
-}
-
-const char *rlhbGetLastError(const rlhbRenderer *renderer) {
-  if (renderer == nullptr || renderer->lastError.empty()) {
-    return "";
-  }
-  return renderer->lastError.c_str();
 }
 
 float rlhbGetAtlasUsageKiB(const rlhbRenderer *renderer) {
@@ -937,7 +972,8 @@ rlhbFont *rlhbLoadDefaultFont(rlhbRenderer *renderer) {
   }
   return font.release();
 #else
-  SetError(renderer, "This build was configured without a bundled default font.");
+  (void)renderer;
+  LogError("This build was configured without a bundled default font.");
   return nullptr;
 #endif
 }
@@ -964,7 +1000,8 @@ bool rlhbShapeTextN(rlhbRenderer *renderer,
                     const rlhbShapeOptions *options,
                     rlhbTextRun **outRun) {
   if (outRun == nullptr) {
-    SetError(renderer, "An output run pointer is required.");
+    (void)renderer;
+    LogError("An output run pointer is required.");
     return false;
   }
 

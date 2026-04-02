@@ -58,12 +58,14 @@ typedef struct rlhbRunMetrics {
   int glyphCount;
 } rlhbRunMetrics;
 
+typedef void (*rlhbLogCallback)(int level, const char *message, void *userData);
+
 RLHB_API rlhbShapeOptions rlhbGetDefaultShapeOptions(void);
+RLHB_API void rlhbSetLogCallback(rlhbLogCallback callback, void *userData);
 
 RLHB_API rlhbRenderer *rlhbCreateRenderer(void);
 RLHB_API void rlhbDestroyRenderer(rlhbRenderer *renderer);
 RLHB_API bool rlhbIsRendererReady(const rlhbRenderer *renderer);
-RLHB_API const char *rlhbGetLastError(const rlhbRenderer *renderer);
 RLHB_API float rlhbGetAtlasUsageKiB(const rlhbRenderer *renderer);
 
 RLHB_API rlhbFont *rlhbLoadFontFromFile(rlhbRenderer *renderer, const char *filePath);

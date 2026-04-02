@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
              CLITERAL(Color){88, 78, 66, 255});
 
     if (font == nullptr || headline == nullptr || body == nullptr) {
-      DrawText(rlhbGetLastError(renderer), 60, 180, 24, MAROON);
+      DrawText("Setup failed. Check logs.", 60, 180, 24, MAROON);
       DrawText("Example override: rlhb_basic_example C:/path/to/YourFont.ttf",
                60,
                214,

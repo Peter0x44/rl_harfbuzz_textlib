@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
              CLITERAL(Color){88, 78, 66, 255});
 
     if (!font || !titleRun) {
-      DrawText(renderer.lastError(), 60, 180, 24, MAROON);
+      DrawText("Setup failed. Check logs.", 60, 180, 24, MAROON);
       DrawText("Example override: rlhb_cpp_api_example C:/path/to/YourFont.ttf",
                60,
                214,
@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
                CLITERAL(Color){88, 78, 66, 255});
 
       if (!drewTitle || !drewBody) {
-        DrawText(renderer.lastError(), 60, 430, 20, MAROON);
+        DrawText("Draw failed. Check logs.", 60, 430, 20, MAROON);
       }
     }
 
