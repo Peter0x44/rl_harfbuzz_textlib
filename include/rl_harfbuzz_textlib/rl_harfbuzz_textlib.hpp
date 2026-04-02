@@ -46,12 +46,12 @@ class TextRun {
   }
 
   // Returns cached metrics for the shaped run.
-  [[nodiscard]] ::rlhbRunMetrics metrics() const noexcept {
+  ::rlhbRunMetrics metrics() const noexcept {
     return rlhbGetTextRunMetrics(handle_);
   }
 
-  [[nodiscard]] ::rlhbTextRun *get() const noexcept { return handle_; }
-  [[nodiscard]] explicit operator bool() const noexcept { return handle_ != nullptr; }
+  ::rlhbTextRun *get() const noexcept { return handle_; }
+  explicit operator bool() const noexcept { return handle_ != nullptr; }
 
  private:
   ::rlhbTextRun *handle_ = nullptr;
@@ -87,12 +87,12 @@ class Font {
   }
 
   // Returns how many glyphs are currently cached for this font.
-  [[nodiscard]] int cachedGlyphCount() const noexcept {
+  int cachedGlyphCount() const noexcept {
     return rlhbGetCachedGlyphCount(handle_);
   }
 
-  [[nodiscard]] ::rlhbFont *get() const noexcept { return handle_; }
-  [[nodiscard]] explicit operator bool() const noexcept { return handle_ != nullptr; }
+  ::rlhbFont *get() const noexcept { return handle_; }
+  explicit operator bool() const noexcept { return handle_ != nullptr; }
 
  private:
   ::rlhbFont *handle_ = nullptr;
@@ -127,25 +127,25 @@ class Renderer {
   }
 
   // Returns true once GPU resources have been initialized.
-  [[nodiscard]] bool ready() const noexcept { return rlhbIsRendererReady(handle_); }
+  bool ready() const noexcept { return rlhbIsRendererReady(handle_); }
 
   // Returns current glyph atlas usage in KiB.
-  [[nodiscard]] float atlasUsageKiB() const noexcept { return rlhbGetAtlasUsageKiB(handle_); }
+  float atlasUsageKiB() const noexcept { return rlhbGetAtlasUsageKiB(handle_); }
 
   // Loads a font file and returns a move-only Font wrapper.
-  [[nodiscard]] Font loadFont(const char *filePath) const {
+  Font loadFont(const char *filePath) const {
     return Font(rlhbLoadFontFromFile(handle_, filePath));
   }
 
   // Loads the bundled default font and returns a move-only Font wrapper.
-  [[nodiscard]] Font loadDefaultFont() const {
+  Font loadDefaultFont() const {
     return Font(rlhbLoadDefaultFont(handle_));
   }
 
   // Shapes UTF-8 text once and returns a reusable TextRun.
-  [[nodiscard]] TextRun shapeText(std::string_view text,
-                                  Font &font,
-                                  const ::rlhbShapeOptions &options) const {
+  TextRun shapeText(std::string_view text,
+                    Font &font,
+                    const ::rlhbShapeOptions &options) const {
     ::rlhbTextRun *run = nullptr;
     if (!rlhbShapeTextN(handle_, font.get(), text.data(), text.size(), &options, &run)) {
       return TextRun();
@@ -155,7 +155,7 @@ class Renderer {
 
   // Begins an explicit text draw scope. endDraw() returns to default raylib-style state.
   // Note: Will overwrite any currently active shader state, and flush raylib's batch system.
-  [[nodiscard]] bool beginDraw() const {
+  bool beginDraw() const {
     return rlhbBeginDraw(handle_);
   }
 
@@ -166,21 +166,21 @@ class Renderer {
 
   // Shapes and draws UTF-8 text in one call.
   // baseline is a typographic baseline, not a top-left text box origin.
-  [[nodiscard]] bool drawText(std::string_view text,
-                              Font &font,
-                              Vector2 baseline,
-                              Color tint,
-                              const ::rlhbShapeOptions &options) const {
+  bool drawText(std::string_view text,
+                Font &font,
+                Vector2 baseline,
+                Color tint,
+                const ::rlhbShapeOptions &options) const {
     return rlhbDrawTextN(handle_, font.get(), text.data(), text.size(), baseline, tint, &options);
   }
 
   // Draws a previously shaped run using a typographic baseline position.
-  [[nodiscard]] bool drawText(const TextRun &run, Vector2 baseline, Color tint) const {
+  bool drawText(const TextRun &run, Vector2 baseline, Color tint) const {
     return rlhbDrawTextRun(handle_, run.get(), baseline, tint);
   }
 
-  [[nodiscard]] ::rlhbRenderer *get() const noexcept { return handle_; }
-  [[nodiscard]] explicit operator bool() const noexcept { return handle_ != nullptr; }
+  ::rlhbRenderer *get() const noexcept { return handle_; }
+  explicit operator bool() const noexcept { return handle_ != nullptr; }
 
  private:
   ::rlhbRenderer *handle_ = nullptr;

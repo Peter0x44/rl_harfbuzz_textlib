@@ -13,7 +13,7 @@ This repository now contains the initial reusable library skeleton:
 - Null-terminated and pointer-plus-length text APIs
 - Optional bundled default font fallback
 - Simple CMake integration for local/subproject use
-- Small Latin and Arabic examples
+- Minimal C and C++ examples plus an interactive type lab
 
 ## Build
 
@@ -35,17 +35,17 @@ By default the project fetches a pinned HarfBuzz source snapshot and compiles th
 
 ## Default Font
 
-By default, the library embeds `Amiri-Regular.ttf` and exposes it through the C API and the thin C++ wrapper.
+By default, the library embeds `DejaVuSans.ttf` and exposes it through the C API and the thin C++ wrapper.
 
 - C API: `rlhbLoadDefaultFont()`
 - C++ API: `renderer.loadDefaultFont()`
 
-This is a convenience fallback so the examples can run without requiring the caller to provide a TTF path. It is a reasonable Arabic and Latin fallback, but it is not a universal font fallback system.
+This is a convenience fallback so the examples can run without requiring the caller to provide a TTF path. It is a more general-purpose demo font with broader Latin, Cyrillic, and Arabic coverage than the previous default, but it is still not a universal font fallback system.
 
 The bundled font asset and its license live in:
 
-- `assets/fonts/Amiri-Regular.ttf`
-- `assets/fonts/LICENSE.Amiri.txt`
+- `assets/fonts/DejaVuSans.ttf`
+- `assets/fonts/LICENSE.DejaVu.txt`
 
 The embedded byte array is pre-generated and committed in:
 
@@ -149,26 +149,36 @@ If you are drawing multiple text runs in sequence, wrap them in `rlhbBeginDraw()
 
 ## Examples
 
-There are now four example entry points, all as flat files under `examples/`:
+There are now three example entry points, all as flat files under `examples/`:
 
-- `rlhb_basic_example` and `rlhb_arabic_example` use the C API from C++ translation units
-- `rlhb_c_api_example` is a pure C translation unit using only the public C header
-- `rlhb_cpp_api_example` uses the thin C++ wrapper API
+- `rlhb_c_api_example` is a very small C example in the spirit of raylib's `core_basic_window.c`
+- `rlhb_cpp_api_example` is the same kind of minimal example using the thin C++ wrapper API
+- `rlhb_type_lab_example` is the interactive showcase: live typing, clickable preset/direction/alignment controls, drag-and-drop font loading, and a zoomable draggable stage
 
-All examples can run without arguments by using the bundled default font, and still accept a font path override on the command line.
+All examples can run without arguments by using the bundled default font.
 
 ```powershell
-./build/rlhb_basic_example
-./build/rlhb_arabic_example
 ./build/rlhb_c_api_example
 ./build/rlhb_cpp_api_example
+./build/rlhb_type_lab_example
 
-# optional override
-./build/rlhb_basic_example C:/path/to/YourFont.ttf
-./build/rlhb_arabic_example C:/path/to/Amiri-Regular.ttf
-./build/rlhb_c_api_example C:/path/to/YourFont.ttf
-./build/rlhb_cpp_api_example C:/path/to/YourFont.ttf
+# optional override for the interactive demo
+./build/rlhb_type_lab_example C:/path/to/YourFont.ttf
 ```
+
+The type lab example supports these controls:
+
+- Type to replace the sample text
+- Click the preset, direction, and alignment chips in the header to switch modes directly
+- `Backspace` deletes the previous UTF-8 codepoint
+- `Ctrl+V` pastes clipboard text
+- Drop a font file onto the window to switch fonts
+- Mouse wheel zooms the main stage view and `PageUp` and `PageDown` also adjust zoom
+- Hold left mouse button and drag to pan the main stage view
+- `Up` and `Down` adjust font size
+- `F4` cycles direction, `F5` resets the view, and `F6` cycles alignment
+
+The type lab example intentionally renders its on-screen UI text through `rlhb`, not raylib's `DrawText()`.
 
 ## CMake consumption
 

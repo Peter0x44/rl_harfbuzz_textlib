@@ -6,9 +6,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(FetchContent)
 
-option(RLHB_BUILD_EXAMPLES "Build rl_harfbuzz_textlib examples" ON)
-option(RLHB_BUILD_TESTS "Build rl_harfbuzz_textlib tests" OFF)
-option(RLHB_FETCH_RAYLIB "Fetch raylib if no compatible target is already available" ON)
+option(RLHB_BUILD_EXAMPLES "Build rl_harfbuzz_textlib examples" OFF)
+option(RLHB_FETCH_RAYLIB "Fetch raylib if no compatible target is already available" OFF)
 option(RLHB_BUNDLE_DEFAULT_FONT "Embed a bundled default font into the library" ON)
 
 set(RLHB_HARFBUZZ_SOURCE_DIR
@@ -74,14 +73,6 @@ function(rlhb_prepare_harfbuzz_source outVar)
     set(harfbuzz_source_dir "${rlhb_harfbuzz_source_SOURCE_DIR}")
   endif()
 
-  if(NOT EXISTS "${harfbuzz_source_dir}/src/harfbuzz-world.cc")
-    message(FATAL_ERROR "The HarfBuzz source tree is missing src/harfbuzz-world.cc: ${harfbuzz_source_dir}")
-  endif()
-
-  if(NOT EXISTS "${harfbuzz_source_dir}/src/hb-gpu.h")
-    message(FATAL_ERROR "The HarfBuzz source tree is missing src/hb-gpu.h: ${harfbuzz_source_dir}")
-  endif()
-
   set(${outVar} "${harfbuzz_source_dir}" PARENT_SCOPE)
 endfunction()
 
@@ -105,10 +96,6 @@ add_library(rl_harfbuzz_textlib
 add_library(rl_harfbuzz_textlib::rl_harfbuzz_textlib ALIAS rl_harfbuzz_textlib)
 
 target_compile_features(rl_harfbuzz_textlib PUBLIC cxx_std_17)
-
-if(MSVC)
-  target_compile_options(rl_harfbuzz_textlib PRIVATE /utf-8)
-endif()
 
 if(BUILD_SHARED_LIBS)
   target_compile_definitions(rl_harfbuzz_textlib PRIVATE RLHB_BUILD_SHARED)
@@ -154,25 +141,21 @@ if(WIN32)
 endif()
 
 if(RLHB_BUILD_EXAMPLES)
-  add_executable(rlhb_basic_example examples/basic.cpp)
-  add_executable(rlhb_arabic_example examples/arabic.cpp)
   add_executable(rlhb_c_api_example examples/c_api.c)
   add_executable(rlhb_cpp_api_example examples/cpp_api.cpp)
+  add_executable(rlhb_type_lab_example examples/type_lab.cpp)
 
-  target_link_libraries(rlhb_basic_example PRIVATE rl_harfbuzz_textlib::rl_harfbuzz_textlib)
-  target_link_libraries(rlhb_arabic_example PRIVATE rl_harfbuzz_textlib::rl_harfbuzz_textlib)
   target_link_libraries(rlhb_c_api_example PRIVATE rl_harfbuzz_textlib::rl_harfbuzz_textlib)
   target_link_libraries(rlhb_cpp_api_example PRIVATE rl_harfbuzz_textlib::rl_harfbuzz_textlib)
+  target_link_libraries(rlhb_type_lab_example PRIVATE rl_harfbuzz_textlib::rl_harfbuzz_textlib)
 
-  target_compile_features(rlhb_basic_example PRIVATE cxx_std_17)
-  target_compile_features(rlhb_arabic_example PRIVATE cxx_std_17)
   target_compile_features(rlhb_cpp_api_example PRIVATE cxx_std_17)
+  target_compile_features(rlhb_type_lab_example PRIVATE cxx_std_17)
 
   set_target_properties(rlhb_c_api_example PROPERTIES LINKER_LANGUAGE CXX)
 
   if(MSVC)
-    target_compile_options(rlhb_basic_example PRIVATE /utf-8)
-    target_compile_options(rlhb_arabic_example PRIVATE /utf-8)
     target_compile_options(rlhb_cpp_api_example PRIVATE /utf-8)
+    target_compile_options(rlhb_type_lab_example PRIVATE /utf-8)
   endif()
 endif()
