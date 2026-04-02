@@ -25,16 +25,16 @@ int main(int argc, char **argv) {
     rlhbShapeOptions bodyOptions = rlhbGetDefaultShapeOptions();
     bodyOptions.fontSize = 34.0f;
 
-    rlhbShapeTextNT(renderer,
-                    font,
-                    "office affine official",
-                    &headlineOptions,
-                    &headline);
-    rlhbShapeTextNT(renderer,
-                    font,
-                    "Ligatures are shaped once and rendered with HarfBuzz GPU coverage.",
-                    &bodyOptions,
-                    &body);
+    rlhbShapeText(renderer,
+            font,
+            "office affine official",
+            &headlineOptions,
+            &headline);
+    rlhbShapeText(renderer,
+            font,
+            "Ligatures are shaped once and rendered with HarfBuzz GPU coverage.",
+            &bodyOptions,
+            &body);
   }
 
   while (!WindowShouldClose()) {

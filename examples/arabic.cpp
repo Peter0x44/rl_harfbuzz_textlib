@@ -29,16 +29,16 @@ int main(int argc, char **argv) {
     rlhbShapeOptions mixedOptions = arabicOptions;
     mixedOptions.fontSize = 40.0f;
 
-    rlhbShapeTextNT(renderer,
-                    font,
-                    u8"السلام عليكم ورحمة الله وبركاته",
-                    &arabicOptions,
-                    &arabic);
-    rlhbShapeTextNT(renderer,
-                    font,
-                    u8"هذا سطر عربي مع mixed Latin text 123 داخل نفس التشغيل.",
-                    &mixedOptions,
-                    &mixed);
+    rlhbShapeText(renderer,
+            font,
+            u8"السلام عليكم ورحمة الله وبركاته",
+            &arabicOptions,
+            &arabic);
+    rlhbShapeText(renderer,
+            font,
+            u8"هذا سطر عربي مع mixed Latin text 123 داخل نفس التشغيل.",
+            &mixedOptions,
+            &mixed);
   }
 
   while (!WindowShouldClose()) {

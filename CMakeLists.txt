@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 4.0.0)
 
 project(rl_harfbuzz_textlib VERSION 0.1.0 LANGUAGES C CXX)
 
@@ -163,7 +163,7 @@ target_link_libraries(rl_harfbuzz_textlib
     "$<INSTALL_INTERFACE:harfbuzz::harfbuzz-gpu>"
 )
 
-if(APPLE)
+if(APPLE) # shouldn't raylib be linking these things?
   find_library(COCOA_LIBRARY Cocoa)
   find_library(IOKIT_LIBRARY IOKit)
   find_library(OPENGL_LIBRARY OpenGL)
@@ -179,7 +179,7 @@ if(APPLE)
 endif()
 
 if(WIN32)
-  target_link_libraries(rl_harfbuzz_textlib PUBLIC winmm opengl32)
+  target_link_libraries(rl_harfbuzz_textlib PUBLIC winmm opengl32) # shouldn't raylib be linking this?
 endif()
 
 if(RLHB_BUILD_EXAMPLES)

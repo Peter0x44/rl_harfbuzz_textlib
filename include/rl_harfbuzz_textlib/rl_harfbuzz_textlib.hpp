@@ -8,12 +8,15 @@
 
 namespace rlhb {
 
+// C++ alias for the global C log callback type.
 using LogCallback = ::rlhbLogCallback;
 
+// Sets the global library log callback. Passing nullptr restores default TraceLog behavior.
 inline void setLogCallback(LogCallback callback, void *userData = nullptr) noexcept {
   rlhbSetLogCallback(callback, userData);
 }
 
+// Move-only owner for a shaped text run.
 class TextRun {
  public:
   TextRun() = default;
@@ -34,6 +37,7 @@ class TextRun {
 
   ~TextRun() { reset(); }
 
+  // Releases the owned shaped run, if any.
   void reset() noexcept {
     if (handle_ != nullptr) {
       rlhbDestroyTextRun(handle_);
@@ -41,6 +45,7 @@ class TextRun {
     }
   }
 
+  // Returns cached metrics for the shaped run.
   [[nodiscard]] ::rlhbRunMetrics metrics() const noexcept {
     return rlhbGetTextRunMetrics(handle_);
   }
@@ -52,6 +57,7 @@ class TextRun {
   ::rlhbTextRun *handle_ = nullptr;
 };
 
+// Move-only owner for a font loaded through the C API.
 class Font {
  public:
   Font() = default;
@@ -72,6 +78,7 @@ class Font {
 
   ~Font() { reset(); }
 
+  // Releases the owned font, if any.
   void reset() noexcept {
     if (handle_ != nullptr) {
       rlhbUnloadFont(handle_);
@@ -79,6 +86,7 @@ class Font {
     }
   }
 
+  // Returns how many glyphs are currently cached for this font.
   [[nodiscard]] int cachedGlyphCount() const noexcept {
     return rlhbGetCachedGlyphCount(handle_);
   }
@@ -90,6 +98,7 @@ class Font {
   ::rlhbFont *handle_ = nullptr;
 };
 
+// Move-only owner for renderer state and convenience wrappers around the C API.
 class Renderer {
  public:
   Renderer() : handle_(rlhbCreateRenderer()) {}
@@ -109,6 +118,7 @@ class Renderer {
 
   ~Renderer() { reset(); }
 
+  // Releases the owned renderer, if any.
   void reset() noexcept {
     if (handle_ != nullptr) {
       rlhbDestroyRenderer(handle_);
@@ -116,17 +126,23 @@ class Renderer {
     }
   }
 
+  // Returns true once GPU resources have been initialized.
   [[nodiscard]] bool ready() const noexcept { return rlhbIsRendererReady(handle_); }
+
+  // Returns current glyph atlas usage in KiB.
   [[nodiscard]] float atlasUsageKiB() const noexcept { return rlhbGetAtlasUsageKiB(handle_); }
 
+  // Loads a font file and returns a move-only Font wrapper.
   [[nodiscard]] Font loadFont(const char *filePath) const {
     return Font(rlhbLoadFontFromFile(handle_, filePath));
   }
 
+  // Loads the bundled default font and returns a move-only Font wrapper.
   [[nodiscard]] Font loadDefaultFont() const {
     return Font(rlhbLoadDefaultFont(handle_));
   }
 
+  // Shapes UTF-8 text once and returns a reusable TextRun.
   [[nodiscard]] TextRun shapeText(std::string_view text,
                                   Font &font,
                                   const ::rlhbShapeOptions &options) const {
@@ -137,6 +153,7 @@ class Renderer {
     return TextRun(run);
   }
 
+  // Shapes and draws UTF-8 text in one call.
   [[nodiscard]] bool drawText(std::string_view text,
                               Font &font,
                               Vector2 baseline,
@@ -145,6 +162,7 @@ class Renderer {
     return rlhbDrawTextN(handle_, font.get(), text.data(), text.size(), baseline, tint, &options);
   }
 
+  // Draws a previously shaped run.
   [[nodiscard]] bool drawText(const TextRun &run, Vector2 baseline, Color tint) const {
     return rlhbDrawTextRun(handle_, run.get(), baseline, tint);
   }

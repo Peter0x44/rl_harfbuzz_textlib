@@ -1015,11 +1015,11 @@ bool rlhbShapeTextN(rlhbRenderer *renderer,
   return true;
 }
 
-bool rlhbShapeTextNT(rlhbRenderer *renderer,
-                     rlhbFont *font,
-                     const char *text,
-                     const rlhbShapeOptions *options,
-                     rlhbTextRun **outRun) {
+bool rlhbShapeText(rlhbRenderer *renderer,
+                   rlhbFont *font,
+                   const char *text,
+                   const rlhbShapeOptions *options,
+                   rlhbTextRun **outRun) {
   if (text == nullptr) {
     return rlhbShapeTextN(renderer, font, nullptr, 0, options, outRun);
   }
@@ -1062,12 +1062,12 @@ bool rlhbDrawTextN(rlhbRenderer *renderer,
   return rlhbDrawTextRun(renderer, run.get(), baseline, tint);
 }
 
-bool rlhbDrawTextNT(rlhbRenderer *renderer,
-                    rlhbFont *font,
-                    const char *text,
-                    Vector2 baseline,
-                    Color tint,
-                    const rlhbShapeOptions *options) {
+bool rlhbDrawText(rlhbRenderer *renderer,
+                  rlhbFont *font,
+                  const char *text,
+                  Vector2 baseline,
+                  Color tint,
+                  const rlhbShapeOptions *options) {
   if (text == nullptr) {
     return rlhbDrawTextN(renderer, font, nullptr, 0, baseline, tint, options);
   }
@@ -1087,10 +1087,10 @@ rlhbRunMetrics rlhbMeasureTextN(rlhbRenderer *renderer,
   return run->metrics;
 }
 
-rlhbRunMetrics rlhbMeasureTextNT(rlhbRenderer *renderer,
-                                 rlhbFont *font,
-                                 const char *text,
-                                 const rlhbShapeOptions *options) {
+rlhbRunMetrics rlhbMeasureText(rlhbRenderer *renderer,
+                               rlhbFont *font,
+                               const char *text,
+                               const rlhbShapeOptions *options) {
   if (text == nullptr) {
     return rlhbMeasureTextN(renderer, font, nullptr, 0, options);
   }

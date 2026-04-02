@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
   }
 
   if (font != NULL) {
-    rlhbShapeTextNT(renderer, font, headlineText, &headlineOptions, &headline);
+    rlhbShapeText(renderer, font, headlineText, &headlineOptions, &headline);
   }
 
   while (!WindowShouldClose()) {
