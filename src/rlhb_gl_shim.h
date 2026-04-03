@@ -3,8 +3,18 @@
 
 #include <stddef.h>
 
-#if defined(_WIN32) && !defined(APIENTRY)
-  #define APIENTRY __stdcall
+/* Define calling convention macro for non-Windows platforms */
+#if !defined(APIENTRY)
+#  if defined(_WIN32)
+#    define APIENTRY __stdcall
+#  else
+#    define APIENTRY
+#  endif
+#endif
+
+/* Ensure C linkage when included from C++ */
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 #if defined(USE_LIBTYPE_SHARED)
@@ -73,5 +83,10 @@ RLHB_GL_EXTERN PFNGLUNIFORM1IPROC glad_glUniform1i;
 #define GL_TEXTURE0 0x84C0
 #define GL_TEXTURE_BUFFER 0x8C2A
 #define GL_VERTEX_SHADER 0x8B31
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
