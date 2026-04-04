@@ -104,6 +104,8 @@ jobs:
             git
           pacboy: >-
             toolchain:p
+            cmake:p
+            ninja:p
 
       - name: Setup MSYS2 (Clang)
         if: matrix.msys2_env && matrix.c_compiler == 'clang'
@@ -116,6 +118,8 @@ jobs:
             git
           pacboy: >-
             clang:p
+            cmake:p
+            ninja:p
 
       - name: Set regular paths
         if: ${{ !matrix.msys2_env }}
