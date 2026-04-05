@@ -67,7 +67,7 @@ function(rlhb_prepare_harfbuzz_source outVar)
     FetchContent_Populate(
       rlhb_harfbuzz_source
       DOWNLOAD_EXTRACT_TIMESTAMP OFF
-      URL https://github.com/harfbuzz/harfbuzz/archive/refs/tags/14.0.0.tar.gz
+      URL https://github.com/harfbuzz/harfbuzz/archive/refs/tags/14.1.0.tar.gz
     )
 
     set(harfbuzz_source_dir "${rlhb_harfbuzz_source_SOURCE_DIR}")
