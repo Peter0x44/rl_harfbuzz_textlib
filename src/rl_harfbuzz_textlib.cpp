@@ -420,7 +420,7 @@ void main ()
         coverage = hb_gpu_darken(
             coverage,
             dot(u_foreground.rgb, vec3(1.0 / 3.0)),
-            1.0 / max(fwidth(v_texcoord).x, fwidth(v_texcoord).y)
+            hb_gpu_ppem(v_texcoord, v_glyphLoc)
         );
     }
 
